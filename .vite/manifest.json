@@ -1,0 +1,118 @@
+{
+  "_framework-BVgzrtAD.js": {
+    "file": "_next/static/chunks/framework-BVgzrtAD.js",
+    "name": "framework",
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js"
+    ]
+  },
+  "_rolldown-runtime-C60lm6uB.js": {
+    "file": "_next/static/chunks/rolldown-runtime-C60lm6uB.js",
+    "name": "rolldown-runtime"
+  },
+  "_solid-collision-C6KW2bkN.js": {
+    "file": "_next/static/chunks/solid-collision-C6KW2bkN.js",
+    "name": "solid-collision"
+  },
+  "_store-C6rVOPiz.js": {
+    "file": "_next/static/chunks/store-C6rVOPiz.js",
+    "name": "store",
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "_framework-BVgzrtAD.js"
+    ]
+  },
+  "app/classroom.tsx": {
+    "file": "_next/static/chunks/classroom-DGaXLduW.js",
+    "name": "classroom",
+    "src": "app/classroom.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "_store-C6rVOPiz.js",
+      "_framework-BVgzrtAD.js"
+    ],
+    "css": [
+      "_next/static/css/classroom.CQHA9TzC.css"
+    ]
+  },
+  "app/student/sandtray3d.tsx": {
+    "file": "_next/static/chunks/sandtray3d-tduEmVIC.js",
+    "name": "sandtray3d",
+    "src": "app/student/sandtray3d.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "_store-C6rVOPiz.js",
+      "_solid-collision-C6KW2bkN.js",
+      "_framework-BVgzrtAD.js"
+    ]
+  },
+  "app/student/student.tsx": {
+    "file": "_next/static/chunks/student-DgzvLoSF.js",
+    "name": "student",
+    "src": "app/student/student.tsx",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "virtual:vinext-app-browser-entry",
+      "_store-C6rVOPiz.js",
+      "_solid-collision-C6KW2bkN.js",
+      "_framework-BVgzrtAD.js"
+    ],
+    "dynamicImports": [
+      "app/student/sandtray3d.tsx"
+    ],
+    "css": [
+      "_next/static/css/student.DxNaqpBr.css"
+    ]
+  },
+  "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js": {
+    "file": "_next/static/chunks/app-route-prefetch-policy-BqdvTdKI.js",
+    "name": "app-route-prefetch-policy",
+    "src": "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "virtual:vinext-app-browser-entry"
+    ]
+  },
+  "node_modules/vinext/dist/shims/layout-segment-context.js": {
+    "file": "_next/static/chunks/layout-segment-context-lFPd7k8D.js",
+    "name": "layout-segment-context",
+    "src": "node_modules/vinext/dist/shims/layout-segment-context.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "virtual:vinext-app-browser-entry",
+      "_framework-BVgzrtAD.js"
+    ]
+  },
+  "node_modules/vinext/dist/shims/streamed-icons.js": {
+    "file": "_next/static/chunks/streamed-icons-BQN1TSSx.js",
+    "name": "streamed-icons",
+    "src": "node_modules/vinext/dist/shims/streamed-icons.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "_framework-BVgzrtAD.js"
+    ]
+  },
+  "virtual:vinext-app-browser-entry": {
+    "file": "_next/static/chunks/index-DQG573a0.js",
+    "name": "index",
+    "src": "virtual:vinext-app-browser-entry",
+    "isEntry": true,
+    "imports": [
+      "_rolldown-runtime-C60lm6uB.js",
+      "_framework-BVgzrtAD.js"
+    ],
+    "dynamicImports": [
+      "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js",
+      "virtual:vinext-app-browser-entry",
+      "node_modules/vinext/dist/shims/layout-segment-context.js",
+      "app/classroom.tsx",
+      "app/student/student.tsx",
+      "node_modules/vinext/dist/shims/streamed-icons.js"
+    ]
+  }
+}
