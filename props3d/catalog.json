@@ -11,7 +11,8 @@
   "label": "妈妈",
   "cat": "人物",
   "height": 0.85,
-  "bytes": 46136
+  "bytes": 46136,
+  "warm": 1
  },
  {
   "id": "Father",
@@ -207,7 +208,8 @@
   "label": "橘猫",
   "cat": "动物",
   "height": 0.3,
-  "bytes": 15080
+  "bytes": 15080,
+  "warm": 1
  },
  {
   "id": "Dog",
@@ -886,7 +888,8 @@
   "label": "栅栏",
   "cat": "建筑",
   "height": 1.6,
-  "bytes": 2572
+  "bytes": 2572,
+  "warm": 1
  },
  {
   "id": "Badminton_court",
