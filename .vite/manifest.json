@@ -30,7 +30,7 @@
     "name": "solid-collision"
   },
   "app/classroom.tsx": {
-    "file": "_next/static/chunks/classroom-CuMN_f0Q.js",
+    "file": "_next/static/chunks/classroom-Byv2OtnH.js",
     "name": "classroom",
     "src": "app/classroom.tsx",
     "isDynamicEntry": true,
@@ -44,7 +44,7 @@
     ]
   },
   "app/student/sandtray3d.tsx": {
-    "file": "_next/static/chunks/sandtray3d-Cjwf6Eyb.js",
+    "file": "_next/static/chunks/sandtray3d-CwYJ75VC.js",
     "name": "sandtray3d",
     "src": "app/student/sandtray3d.tsx",
     "isDynamicEntry": true,
@@ -56,7 +56,7 @@
     ]
   },
   "app/student/student.tsx": {
-    "file": "_next/static/chunks/student-D7Lir1oH.js",
+    "file": "_next/static/chunks/student-CgpA2o_0.js",
     "name": "student",
     "src": "app/student/student.tsx",
     "isDynamicEntry": true,
@@ -71,11 +71,11 @@
       "app/student/sandtray3d.tsx"
     ],
     "css": [
-      "_next/static/css/student.DeU8sDw6.css"
+      "_next/static/css/student.D7bgrCOh.css"
     ]
   },
   "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js": {
-    "file": "_next/static/chunks/app-route-prefetch-policy-Zn9juuV7.js",
+    "file": "_next/static/chunks/app-route-prefetch-policy-DeHtnoUh.js",
     "name": "app-route-prefetch-policy",
     "src": "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js",
     "isDynamicEntry": true,
@@ -84,7 +84,7 @@
     ]
   },
   "node_modules/vinext/dist/shims/layout-segment-context.js": {
-    "file": "_next/static/chunks/layout-segment-context-Bfn5dm1d.js",
+    "file": "_next/static/chunks/layout-segment-context-BVCUJHem.js",
     "name": "layout-segment-context",
     "src": "node_modules/vinext/dist/shims/layout-segment-context.js",
     "isDynamicEntry": true,
@@ -105,7 +105,7 @@
     ]
   },
   "virtual:vinext-app-browser-entry": {
-    "file": "_next/static/chunks/index-OvgJAaqE.js",
+    "file": "_next/static/chunks/index-CDFlgItp.js",
     "name": "index",
     "src": "virtual:vinext-app-browser-entry",
     "isEntry": true,
