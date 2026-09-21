@@ -56,7 +56,7 @@
     ]
   },
   "app/student/student.tsx": {
-    "file": "_next/static/chunks/student-BEff54dJ.js",
+    "file": "_next/static/chunks/student-D6q8dY-b.js",
     "name": "student",
     "src": "app/student/student.tsx",
     "isDynamicEntry": true,
@@ -71,11 +71,11 @@
       "app/student/sandtray3d.tsx"
     ],
     "css": [
-      "_next/static/css/student.o72rqvBf.css"
+      "_next/static/css/student.zTTopgDJ.css"
     ]
   },
   "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js": {
-    "file": "_next/static/chunks/app-route-prefetch-policy-DgGrSrPH.js",
+    "file": "_next/static/chunks/app-route-prefetch-policy-CpGP016G.js",
     "name": "app-route-prefetch-policy",
     "src": "node_modules/vinext/dist/shims/internal/app-route-prefetch-policy.js",
     "isDynamicEntry": true,
@@ -84,7 +84,7 @@
     ]
   },
   "node_modules/vinext/dist/shims/layout-segment-context.js": {
-    "file": "_next/static/chunks/layout-segment-context-pz-8nkrc.js",
+    "file": "_next/static/chunks/layout-segment-context-CAbFYaKx.js",
     "name": "layout-segment-context",
     "src": "node_modules/vinext/dist/shims/layout-segment-context.js",
     "isDynamicEntry": true,
@@ -105,7 +105,7 @@
     ]
   },
   "virtual:vinext-app-browser-entry": {
-    "file": "_next/static/chunks/index-CeOD4yOE.js",
+    "file": "_next/static/chunks/index-Ct9QAr8E.js",
     "name": "index",
     "src": "virtual:vinext-app-browser-entry",
     "isEntry": true,
