@@ -145,7 +145,7 @@
   <p id="framed" class="note" hidden><a href="/" target="_blank" rel="noopener">在新窗口打开</a></p>
   <p id="unsupported" class="note" hidden><b class="note-t">这个浏览器打不开本站</b>微信、QQ 里请点右上角「···」<br>选择“在浏览器打开”<br>或换用 Chrome、Edge、Safari（非无痕模式）</p>
 </main>
-<script id="gate-config" type="application/json">{"v":2,"build":"20260923T132535-1e3205","keyId":"385f4799e78eb12a","maxAgeDays":30,"acct":1,"kdf":{"name":"PBKDF2","hash":"SHA-256","iterations":4000000,"salt":"5n2FK3S+CfQckxqPVTjNbQ=="},"wrap":{"alg":"AES-GCM","iv":"2r5Hl+3YMgECh2w4","data":"UIw0BerJvH8RKbdrDZeXbTOgDzECgn5AJ42ES+zaVW5IRksezMgagdFcfvNpRr+o"}}</script>
+<script id="gate-config" type="application/json">{"v":3,"build":"20260923T143045-322ede","keyId":"9dd5e1ce1f545e04","commonKeyId":"9dd5e1ce1f545e04","maxAgeDays":30,"realms":{"teacher":{"keyId":"d908696c2770f0f1","acct":1,"kdf":{"name":"PBKDF2","hash":"SHA-256","iterations":4000000,"salt":"c9rR0oJsnK4YA/+8FYPnoA=="},"wrap":{"alg":"AES-GCM","iv":"gFVbvhRcE/1dC1py","data":"yDLAhN+xsTm9wkWtCImD5QB8S5a+6L5E/R689DFfSP9mecgqehjTahVjoOJvtlXj"},"wrapC":{"alg":"AES-GCM","iv":"YPcR2LzQ2gAF/OwR","data":"tqQiz3fWjsoEthjcbLvMtnXSRAl/YpV5SXEsYzdoEf6+7wavGZeCrAUv8xD2D+Te"}},"student":{"keyId":"2546afa114b00a4f","acct":1,"kdf":{"name":"PBKDF2","hash":"SHA-256","iterations":4000000,"salt":"YFWMCNvQbWhs4CeVr8VmUQ=="},"wrap":{"alg":"AES-GCM","iv":"9fJ6KTnJaKifq8z3","data":"Zp+EKH7/vBzXjLua6SgLbR+NrdAYRYL28J2jde/HhL3KWjN7predOIF+aPcCIc9Y"},"wrapC":{"alg":"AES-GCM","iv":"5QChdPt0h5dzDqWN","data":"GZx1D9VI+cg8EehacXcrPbMUJX5LQYS+XHWNFxcSnVvMUchxj+XbJ8SZgm6hRRld"}}}}</script>
 <script>
 (function () {
   'use strict';
@@ -154,12 +154,15 @@
   // 页面内容全部以密文存放，只有拿到 K 的浏览器才能解密显示。
   // ------------------------------------------------------------------
   var INLINE = JSON.parse(document.getElementById('gate-config').textContent);
-  var DB_NAME = 'site-gate', STORE = 'kv', KEY_REC = 'key';
+  var DB_NAME = 'site-gate', STORE = 'kv', LEGACY_KEY_REC = 'key';
+  // 这是哪一端的登录页：/student… 是学生端，其余是教师端。两端的登录互相独立，各记各的钥匙
+  var REALM = /^\/student(\.html|\.rsc)?(\/|$)/.test(location.pathname) ? 'student' : 'teacher';
+  var KEY_REC = 'key:' + REALM;
   var AUTO_FLAG = 'site-gate-auto';
   var $ = function (id) { return document.getElementById(id); };
   var form = $('f'), acct = $('acct'), pw = $('pw'), msg = $('msg'), go = $('go'), goT = $('go-t');
   // 学生端（/student）用学生端的 logo，其余用教师端的
-  if (/^\/student(\.html)?(\/|$)/.test(location.pathname)) { $('logo').src = '/logo-student.png'; $('logo').alt = 'AI心世界 学生端'; }
+  if (REALM === 'student') { $('logo').src = '/logo-student.png'; $('logo').alt = 'AI心世界 学生端'; }
 
   function b64(s) { var bin = atob(s), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -205,7 +208,7 @@
   function latestConfig() {
     return withTimeout(fetch('/_gate/config.json', { cache: 'no-store', credentials: 'same-origin' }), 6000)
       .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(function (c) { return c && c.keyId ? c : INLINE; })
+      .then(function (c) { return c && c.realms && c.realms[REALM] ? c : INLINE; })
       .catch(function () { return INLINE; });
   }
 
@@ -289,26 +292,29 @@
     });
   }
 
-  // 解锁用的口令 = 账号（不分大小写）+ 换行 + 密码；老版本的配置（没有账号）只用密码
+  // 解锁用的口令 = 账号（不分大小写）+ 换行 + 密码。这一端的配置里包着两把钥匙：这一端自己的页面钥匙、两端共用的资源钥匙
   function unlock(account, password) {
     return latestConfig().then(function (cfg) {
+      var rc = cfg.realms[REALM];
       var enc = new TextEncoder();
       var subtle = crypto.subtle;
-      var cred = cfg.acct ? account.normalize('NFC').toLowerCase() + '\n' + password.normalize('NFC') : password.normalize('NFC');
+      var cred = rc.acct ? account.normalize('NFC').toLowerCase() + '\n' + password.normalize('NFC') : password.normalize('NFC');
+      var unwrap = function (kek, w, keyId) {
+        return subtle.unwrapKey('raw', b64(w.data), kek, { name: 'AES-GCM', iv: b64(w.iv), additionalData: enc.encode('site-gate/v1/' + keyId) },
+          { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+      };
       return subtle.importKey('raw', enc.encode(cred), 'PBKDF2', false, ['deriveKey'])
         .then(function (base) {
-          return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: b64(cfg.kdf.salt), iterations: cfg.kdf.iterations },
+          return subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: b64(rc.kdf.salt), iterations: rc.kdf.iterations },
             base, { name: 'AES-GCM', length: 256 }, false, ['unwrapKey']);
         })
         .then(function (kek) {
-          // 密码不对时 GCM 校验失败，这里会抛错
-          return subtle.unwrapKey('raw', b64(cfg.wrap.data), kek,
-            { name: 'AES-GCM', iv: b64(cfg.wrap.iv), additionalData: enc.encode('site-gate/v1/' + cfg.keyId) },
-            { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+          // 账号或密码不对时 GCM 校验失败，这里会抛错
+          return Promise.all([unwrap(kek, rc.wrap, rc.keyId), unwrap(kek, rc.wrapC, cfg.commonKeyId)]);
         })
-        .then(function (key) {
+        .then(function (ks) {
           var now = Date.now();
-          return idbPut(KEY_REC, { keyId: cfg.keyId, key: key, t: now, exp: now + (cfg.maxAgeDays || 30) * 864e5, build: cfg.build })
+          return idbPut(KEY_REC, { realm: REALM, keyId: rc.keyId, key: ks[0], ckeyId: cfg.commonKeyId, ckey: ks[1], t: now, exp: now + (cfg.maxAgeDays || 30) * 864e5, build: cfg.build })
             .then(function () { return true; });
         }, function () { return false; });
     });
@@ -349,22 +355,23 @@
     // 先把 Service Worker 注册上（下载解密器），用户输密码时它已准备好
     register().catch(function () { unsupported(); });
     var url = new URL(location.href);
+    idbDel(LEGACY_KEY_REC).catch(function () {});   // 老版本（整站一把钥匙）留下的记录
     if (url.searchParams.has('lock')) {
-      // 重新上锁：清掉这台设备上的密钥
-      // （Service Worker 处理带 ?lock 的页面请求时已先清掉内存里的密钥；这里再清一次存储并通知它，不等回话）
-      try { if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'lock' }); } catch (e) {}
+      // 退出这一端：清掉这台设备上这一端的钥匙（另一端不受影响）
+      // （Service Worker 处理带 ?lock 的页面请求时已先清掉；这里再清一次存储并通知它，不等回话）
+      try { if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage({ type: 'lock', realm: REALM }); } catch (e) {}
       idbDel(KEY_REC).catch(function () {}).then(function () {
         try { history.replaceState(null, '', target()); } catch (e) {}
         showInfo('已退出');
-        register().then(function (reg) { if (reg.active) reg.active.postMessage({ type: 'lock' }); }).catch(function () {});
+        register().then(function (reg) { if (reg.active) reg.active.postMessage({ type: 'lock', realm: REALM }); }).catch(function () {});
       });
       return;
     }
-    // 这台设备已记住（例如强制刷新绕过了 Service Worker）：直接进入
+    // 这台设备已登录这一端（例如强制刷新绕过了 Service Worker）：直接进入
     idbGet(KEY_REC).then(function (rec) {
       if (!rec || !rec.key || !(rec.exp > Date.now())) return;
       return latestConfig().then(function (cfg) {
-        if (rec.keyId !== cfg.keyId) return idbDel(KEY_REC);
+        if (rec.keyId !== cfg.realms[REALM].keyId || rec.ckeyId !== cfg.commonKeyId) return idbDel(KEY_REC);
         setBusy(true, '正在进入');
         return enter();
       });

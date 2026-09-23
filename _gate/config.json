@@ -1,18 +1,49 @@
 {
-  "v": 2,
-  "build": "20260923T132535-1e3205",
-  "keyId": "385f4799e78eb12a",
+  "v": 3,
+  "build": "20260923T143045-322ede",
+  "keyId": "9dd5e1ce1f545e04",
+  "commonKeyId": "9dd5e1ce1f545e04",
   "maxAgeDays": 30,
-  "acct": 1,
-  "kdf": {
-    "name": "PBKDF2",
-    "hash": "SHA-256",
-    "iterations": 4000000,
-    "salt": "5n2FK3S+CfQckxqPVTjNbQ=="
-  },
-  "wrap": {
-    "alg": "AES-GCM",
-    "iv": "2r5Hl+3YMgECh2w4",
-    "data": "UIw0BerJvH8RKbdrDZeXbTOgDzECgn5AJ42ES+zaVW5IRksezMgagdFcfvNpRr+o"
+  "realms": {
+    "teacher": {
+      "keyId": "d908696c2770f0f1",
+      "acct": 1,
+      "kdf": {
+        "name": "PBKDF2",
+        "hash": "SHA-256",
+        "iterations": 4000000,
+        "salt": "c9rR0oJsnK4YA/+8FYPnoA=="
+      },
+      "wrap": {
+        "alg": "AES-GCM",
+        "iv": "gFVbvhRcE/1dC1py",
+        "data": "yDLAhN+xsTm9wkWtCImD5QB8S5a+6L5E/R689DFfSP9mecgqehjTahVjoOJvtlXj"
+      },
+      "wrapC": {
+        "alg": "AES-GCM",
+        "iv": "YPcR2LzQ2gAF/OwR",
+        "data": "tqQiz3fWjsoEthjcbLvMtnXSRAl/YpV5SXEsYzdoEf6+7wavGZeCrAUv8xD2D+Te"
+      }
+    },
+    "student": {
+      "keyId": "2546afa114b00a4f",
+      "acct": 1,
+      "kdf": {
+        "name": "PBKDF2",
+        "hash": "SHA-256",
+        "iterations": 4000000,
+        "salt": "YFWMCNvQbWhs4CeVr8VmUQ=="
+      },
+      "wrap": {
+        "alg": "AES-GCM",
+        "iv": "9fJ6KTnJaKifq8z3",
+        "data": "Zp+EKH7/vBzXjLua6SgLbR+NrdAYRYL28J2jde/HhL3KWjN7predOIF+aPcCIc9Y"
+      },
+      "wrapC": {
+        "alg": "AES-GCM",
+        "iv": "5QChdPt0h5dzDqWN",
+        "data": "GZx1D9VI+cg8EehacXcrPbMUJX5LQYS+XHWNFxcSnVvMUchxj+XbJ8SZgm6hRRld"
+      }
+    }
   }
 }

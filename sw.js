@@ -1,16 +1,21 @@
 /* 站点访问门 · Service Worker
- * 站内除公开外壳外的所有文件都以 AES-256-GCM 密文存放。
- * 本 Service Worker 用 IndexedDB 里的内容密钥 K（访问门页面输对密码后写入）
- * 在浏览器本地解密，再以原始路径、正确的 Content-Type 交给页面。
- * 没有 K：页面跳转 → 访问门；资源请求 → 401。
+ * 站内除公开外壳外的所有文件都以 AES-256-GCM 密文存放，分三把钥匙：
+ *   教师端的页面（index.html / index.rsc）一把、学生端的页面（student.*）一把、两端共用的资源一把。
+ * 在哪一端登录，登录页就把那一端的钥匙和公共钥匙写进 IndexedDB（'key:teacher' / 'key:student'）。
+ * 本 Service Worker 按密文文件头里的 keyId 找钥匙，在浏览器本地解密，再以原始路径、正确的 Content-Type 交给页面。
+ * 没有对应的钥匙：页面跳转 → 这一端的登录页；资源请求 → 401。所以两端的登录互不相通。
  */
 'use strict';
 
-const GATE = {"build":"20260923T132535-1e3205","keyId":"385f4799e78eb12a","publicPaths":["/.nojekyll","/favicon.svg","/logo-student.png","/logo.png","/robots.txt","/sw.js"],"publicPrefixes":["/_gate/"]};
+const GATE = {"build":"20260923T143045-322ede","realms":{"teacher":"d908696c2770f0f1","student":"2546afa114b00a4f"},"commonKeyId":"9dd5e1ce1f545e04","publicPaths":["/.nojekyll","/favicon.svg","/logo-student.png","/logo.png","/robots.txt","/sw.js"],"publicPrefixes":["/_gate/"]};
 
 const DB_NAME = 'site-gate';
 const STORE = 'kv';
-const KEY_REC = 'key';
+const LEGACY_KEY_REC = 'key';          // 老版本（整站一把钥匙）的记录：新版本上线时一律清掉
+const REALMS = GATE.realms;            // { teacher: keyId, student: keyId }
+const recName = (realm) => 'key:' + realm;
+// 这个地址属于哪一端（登出时只登出这一端）
+const realmOf = (pathname) => (/^\/student(\.html|\.rsc)?(\/|$)/.test(pathname) ? 'student' : 'teacher');
 const MAGIC = [0x53, 0x47, 0x54, 0x02]; // "SGT" + 格式版本 2（认证数据绑定发布路径）
 const HEAD_LEN = 4 + 8 + 12;            // 魔数+版本 | keyId(8) | IV(12)
 const LOCKED = '/_locked';
@@ -55,19 +60,28 @@ const idbGet = (k) => idbTx('readonly', (s) => s.get(k));
 const idbDel = (k) => idbTx('readwrite', (s) => s.delete(k));
 
 // ---------------- 密钥 ----------------
-let keyState = null;   // { keyId, key(CryptoKey), exp }
+// keyMap：keyId → CryptoKey（这台设备登录过的每一端的钥匙，加上公共钥匙）；exp 是其中最早的过期时间
+let keyMap = null;
 let keyLoading = null;
 
-async function getKey() {
-  if (keyState && keyState.exp > Date.now()) return keyState;
-  keyState = null;
+async function getKeys() {
+  if (keyMap && keyMap.exp > Date.now()) return keyMap;
+  keyMap = null;
   if (!keyLoading) {
     keyLoading = (async () => {
       try {
-        const rec = await idbGet(KEY_REC);
-        if (rec && rec.key && rec.exp > Date.now()) { keyState = rec; return rec; }
-        if (rec) await idbDel(KEY_REC); // 过期
-        return null;
+        const map = new Map();
+        let exp = Infinity;
+        for (const realm of Object.keys(REALMS)) {
+          const rec = await idbGet(recName(realm));
+          if (!rec) continue;
+          if (!(rec.key && rec.ckey && rec.exp > Date.now())) { await idbDel(recName(realm)); continue; }   // 过期
+          map.set(rec.keyId, rec.key); map.set(rec.ckeyId, rec.ckey);
+          if (rec.exp < exp) exp = rec.exp;
+        }
+        if (!map.size) return null;
+        map.exp = exp; keyMap = map;
+        return map;
       } catch (e) {
         return null;
       } finally {
@@ -77,18 +91,9 @@ async function getKey() {
   }
   return keyLoading;
 }
-async function clearKey() {
-  keyState = null;
-  try { await idbDel(KEY_REC); } catch (e) {}
-}
-
-// 目前线上部署用的 keyId（不走缓存）；拿不到就退回本 sw.js 内置的
-async function deployedKeyId() {
-  try {
-    const r = await fetch('/_gate/config.json', { cache: 'no-store' });
-    if (r.ok) { const c = await r.json(); if (c && c.keyId) return c.keyId; }
-  } catch (e) {}
-  return GATE.keyId;
+async function clearRealm(realm) {
+  keyMap = null;
+  try { await idbDel(recName(realm)); } catch (e) {}
 }
 
 // ---------------- 生命周期 ----------------
@@ -96,12 +101,15 @@ self.addEventListener('install', (e) => { e.waitUntil(self.skipWaiting()); });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
-    // 新版本上线且换了内容密钥：旧密钥作废，下次打开会看到访问门
+    // 新版本上线且换了钥匙：旧钥匙作废，下次打开会看到登录页（也就是所有设备都被登出）
     try {
-      const rec = await idbGet(KEY_REC);
-      if (rec && (rec.keyId !== GATE.keyId || !(rec.exp > Date.now()))) await idbDel(KEY_REC);
+      await idbDel(LEGACY_KEY_REC);
+      for (const realm of Object.keys(REALMS)) {
+        const rec = await idbGet(recName(realm));
+        if (rec && (rec.keyId !== REALMS[realm] || rec.ckeyId !== GATE.commonKeyId || !(rec.exp > Date.now()))) await idbDel(recName(realm));
+      }
     } catch (e) {}
-    keyState = null;
+    keyMap = null;
     await self.clients.claim();
   })());
 });
@@ -110,12 +118,13 @@ self.addEventListener('message', (e) => {
   const type = e.data && e.data.type;
   const reply = (v) => { if (e.ports && e.ports[0]) e.ports[0].postMessage(v); };
   if (type === 'refresh') {
-    keyState = null;
-    e.waitUntil(getKey().then((k) => reply({ ok: !!k, keyId: k ? k.keyId : null, build: GATE.build })));
+    keyMap = null;
+    e.waitUntil(getKeys().then((m) => reply({ ok: !!m, build: GATE.build })));
   } else if (type === 'lock') {
-    e.waitUntil(clearKey().then(() => reply({ ok: true })));
+    const realm = e.data.realm && REALMS[e.data.realm] ? e.data.realm : 'teacher';
+    e.waitUntil(clearRealm(realm).then(() => reply({ ok: true })));
   } else if (type === 'ping') {
-    reply({ build: GATE.build, keyId: GATE.keyId });
+    reply({ build: GATE.build, realms: REALMS, commonKeyId: GATE.commonKeyId });
   }
 });
 
@@ -160,10 +169,10 @@ function locked401() {
 async function handle(req, url) {
   const nav = req.mode === 'navigate';
   if (nav && url.searchParams.has('lock')) {
-    await clearKey();
+    await clearRealm(realmOf(url.pathname));        // 只登出这一端
     return gatePage();
   }
-  const k = await getKey();
+  const k = await getKeys();
   if (!k) return nav ? gatePage() : locked401();
 
   const ext = extOf(url.pathname);
@@ -182,9 +191,8 @@ async function handle(req, url) {
     out = await serveFile(k, url.pathname, url.search, ext, cacheMode(req));
   }
 
-  if (out.stale) {
-    // 密钥已被新部署替换：清掉本地密钥，回到访问门
-    await clearKey();
+  if (out.nokey) {
+    // 这台设备没有这个文件的钥匙：没登录这一端，或者钥匙已经被新版本换掉——回到这一端的登录页
     return nav ? gatePage() : locked401();
   }
   if (out.status === 404) return notFound(k);
@@ -204,19 +212,15 @@ async function notFound(k) {
   return new Response('Not Found', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 }
 
-function sameId(buf, keyIdBytes) {
-  for (let i = 0; i < 8; i++) if (buf[4 + i] !== keyIdBytes[i]) return false;
-  return true;
+function headKeyId(buf) {
+  let s = '';
+  for (let i = 4; i < 12; i++) s += (buf[i] < 16 ? '0' : '') + buf[i].toString(16);
+  return s;
 }
 function isBox(buf) {
   if (buf.length < HEAD_LEN + 16) return false;
   for (let i = 0; i < 4; i++) if (buf[i] !== MAGIC[i]) return false;
   return true;
-}
-function hexToBytes(h) {
-  const u = new Uint8Array(h.length / 2);
-  for (let i = 0; i < u.length; i++) u[i] = parseInt(h.substr(i * 2, 2), 16);
-  return u;
 }
 
 function textResponse(status, text, extra) {
@@ -242,9 +246,8 @@ function aadFor(buf, pathname) {
   return a;
 }
 
-// 取回密文并解密。返回 { status, response } 或 { stale: true }
-async function serveFile(k, pathname, search, ext, cache) {
-  const kid = hexToBytes(k.keyId);
+// 取回密文，按文件头里的 keyId 找钥匙解密。返回 { status, response } 或 { nokey: true }
+async function serveFile(keys, pathname, search, ext, cache) {
   const u = sameOriginUrl(pathname, search);
   if (!u) return { status: 404 };
   const opts = { cache, credentials: 'same-origin', redirect: 'follow', mode: 'same-origin' };
@@ -254,24 +257,21 @@ async function serveFile(k, pathname, search, ext, cache) {
   if (!res.ok) return { status: res.status, response: textResponse(res.status, 'upstream ' + res.status) };
   let buf = new Uint8Array(await res.arrayBuffer());
   if (!isBox(buf)) return notBox();
-  if (!sameId(buf, kid)) {
+  let key = keys.get(headKeyId(buf));
+  if (!key) {
     // 可能是浏览器缓存里的旧文件：绕过缓存再取一次
     try { res = await fetch(u.href, Object.assign({}, opts, { cache: 'reload' })); } catch (e) { return { status: 502, response: textResponse(502, 'fetch failed') }; }
     if (res.status === 404) return { status: 404 };
     buf = new Uint8Array(await res.arrayBuffer());
     if (!isBox(buf)) return notBox();
-    if (!sameId(buf, kid)) {
-      // 还是不一致：看线上配置——如果线上用的正是我们手里的密钥，说明是 CDN 上的旧文件，暂不清钥
-      const live = await deployedKeyId();
-      if (live !== k.keyId) return { stale: true };
-      return { status: 503, response: new Response('stale file', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Retry-After': '30' } }) };
-    }
+    key = keys.get(headKeyId(buf));
+    if (!key) return { nokey: true };
   }
   const iv = buf.subarray(12, HEAD_LEN);
   const aad = aadFor(buf, u.pathname);
   let plain;
   try {
-    plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: aad }, k.key, buf.subarray(HEAD_LEN));
+    plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, buf.subarray(HEAD_LEN));
   } catch (e) {
     return { status: 500, response: textResponse(500, 'decrypt failed') };
   }
