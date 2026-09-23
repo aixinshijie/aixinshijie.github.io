@@ -1,0 +1,18 @@
+{
+  "v": 2,
+  "build": "20260923T132535-1e3205",
+  "keyId": "385f4799e78eb12a",
+  "maxAgeDays": 30,
+  "acct": 1,
+  "kdf": {
+    "name": "PBKDF2",
+    "hash": "SHA-256",
+    "iterations": 4000000,
+    "salt": "5n2FK3S+CfQckxqPVTjNbQ=="
+  },
+  "wrap": {
+    "alg": "AES-GCM",
+    "iv": "2r5Hl+3YMgECh2w4",
+    "data": "UIw0BerJvH8RKbdrDZeXbTOgDzECgn5AJ42ES+zaVW5IRksezMgagdFcfvNpRr+o"
+  }
+}
