@@ -124,7 +124,63 @@
   .note-t { display: block; margin-bottom: 8px; font-size: 15px; font-weight: 600; color: var(--ink); }
   [hidden] { display: none !important; }
   @media (prefers-reduced-motion: reduce) { .card, .shake, .spin { animation: none !important; } }
+  /* 教师端登录页跟随教师端「个人设置」里选的主题色（薄荷绿 / 暖阳黄 / 湖水蓝 / 晨光粉 / 藤萝紫）。
+     下面的颜色在薄荷绿时和上面原来的颜色一致，其余主题只换色相；学生端和不支持 oklch 的旧浏览器保持原来的样子 */
+  html[data-theme=mint] { --th: 165; --logo-tint: brightness(.7249) sepia(1) saturate(1.2) hue-rotate(102deg) brightness(.9043); }
+  html[data-theme=amber] { --th: 85; --logo-tint: brightness(.7041) sepia(1) saturate(1.5) hue-rotate(2deg) brightness(.9164); }
+  html[data-theme=blue] { --th: 245; --logo-tint: brightness(.6424) sepia(1) saturate(1.5) hue-rotate(163deg) brightness(1.001); }
+  html[data-theme=rose] { --th: 15; --logo-tint: brightness(.6194) sepia(1) saturate(1.3) hue-rotate(-55deg) brightness(1.001); }
+  html[data-theme=violet] { --th: 305; --logo-tint: brightness(.649) sepia(1) saturate(1.1) hue-rotate(-136deg) brightness(.9923); }
+  @supports (color: oklch(0 0 0)) {
+    html[data-theme] {
+      --bg: oklch(.973 .006 calc(var(--th) + 15));
+      --ink: oklch(.323 .038 calc(var(--th) + 12));
+      --ink-soft: oklch(.547 .032 calc(var(--th) + 14));
+      --mint-1: oklch(.958 .013 calc(var(--th) + 7));
+      --mint-2: oklch(.908 .028 calc(var(--th) + 9));
+      --teal: oklch(.575 .089 calc(var(--th) + 13));
+      --btn-1: oklch(.4 .041 calc(var(--th) + 14));
+      --btn-2: oklch(.296 .031 calc(var(--th) + 14));
+    }
+    html[data-theme] body::before { background: radial-gradient(circle at 50% 50%, oklch(.834 .061 calc(var(--th) + 7) / .55), oklch(.834 .061 calc(var(--th) + 7) / 0) 70%); }
+    html[data-theme] body::after { background: radial-gradient(circle at 50% 50%, oklch(.895 .036 calc(var(--th) + 59) / .6), oklch(.895 .036 calc(var(--th) + 59) / 0) 70%); }
+    html[data-theme] .card {
+      background: linear-gradient(160deg, rgba(255, 255, 255, .86), oklch(.948 .019 calc(var(--th) + 7) / .78));
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 28px 64px -26px oklch(.367 .052 calc(var(--th) + 11) / .32), 0 2px 10px oklch(.367 .052 calc(var(--th) + 11) / .06);
+    }
+    /* logo 换成和教师端顶栏一样的主题色立体字，底色相应调浅 */
+    html[data-theme] .brand {
+      background: linear-gradient(180deg, oklch(.968 .013 calc(var(--th) + 7)), oklch(.935 .024 calc(var(--th) + 8)));
+      box-shadow: 0 1px 0 rgba(255, 255, 255, .8) inset, 0 8px 20px -14px oklch(.367 .052 calc(var(--th) + 11) / .35);
+    }
+    html[data-theme] .brand img { filter: var(--logo-tint) drop-shadow(0 3px 8px oklch(.434 .057 calc(var(--th) + 2) / .16)); }
+    html[data-theme] .field svg { color: oklch(.649 .029 calc(var(--th) + 14)); }
+    html[data-theme] input { border-color: oklch(.575 .089 calc(var(--th) + 13) / .18); box-shadow: 0 1px 2px oklch(.367 .052 calc(var(--th) + 11) / .06) inset; }
+    html[data-theme] input::placeholder { color: oklch(.74 .024 calc(var(--th) + 15)); }
+    html[data-theme] input:focus { border-color: oklch(.575 .089 calc(var(--th) + 13) / .55); box-shadow: 0 0 0 4px oklch(.575 .089 calc(var(--th) + 13) / .12); }
+    html[data-theme] input[aria-invalid="true"] { border-color: rgba(178, 74, 63, .55); box-shadow: 0 0 0 4px rgba(178, 74, 63, .1); }
+    html[data-theme] button { box-shadow: 0 10px 22px -10px oklch(.296 .031 calc(var(--th) + 14) / .6), 0 1px 0 rgba(255, 255, 255, .18) inset; }
+    html[data-theme] button:hover { box-shadow: 0 14px 26px -10px oklch(.296 .031 calc(var(--th) + 14) / .65), 0 1px 0 rgba(255, 255, 255, .18) inset; }
+    html[data-theme] button:focus-visible { outline-color: oklch(.575 .089 calc(var(--th) + 13) / .45); }
+  }
 </style>
+<script>
+  // 教师端登录页跟随教师端「个人设置」里选的主题色：只读这台设备上保存的个人设置，只认这 5 个主题；学生端（/student）不变
+  (function () {
+    try {
+      if (/^\/student(\.html|\.rsc)?(\/|$)/.test(location.pathname)) return;
+      var bg = { mint: '#f2f7f6', amber: '#f7f6f2', blue: '#f4f6fa', rose: '#faf5f4', violet: '#f8f5f9' };
+      var t = 'mint', p = null;
+      try { p = JSON.parse(localStorage.getItem('xinyu-profile-v1') || 'null'); } catch (e) {}
+      // 和教师端一样：个人设置完整有效时才用它的主题，否则用默认的薄荷绿
+      if (p && typeof p === 'object' && typeof p.name === 'string' && p.name.trim() && typeof p.school === 'string' &&
+          ['心理教师', '班主任', '学校管理者'].indexOf(p.role) >= 0 && Object.prototype.hasOwnProperty.call(bg, p.avatar)) t = p.avatar;
+      document.documentElement.setAttribute('data-theme', t);
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (m && window.CSS && CSS.supports && CSS.supports('color', 'oklch(0 0 0)')) m.setAttribute('content', bg[t]);
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 <main class="card" aria-labelledby="t">
