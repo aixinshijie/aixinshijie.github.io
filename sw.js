@@ -4,10 +4,13 @@
  * 在哪一端登录，登录页就把那一端的钥匙和公共钥匙写进 IndexedDB（'key:teacher' / 'key:student'）。
  * 本 Service Worker 按密文文件头里的 keyId 找钥匙，在浏览器本地解密，再以原始路径、正确的 Content-Type 交给页面。
  * 没有对应的钥匙：页面跳转 → 这一端的登录页；资源请求 → 401。所以两端的登录互不相通。
+ * 例外：/sandlab 和 /sandlab/ 下面是另一个仓库（aixinshijie/sandlab，沙水实验室）发布的 GitHub Pages，和本站同一个域名，
+ *   门不管它（GATE 的 publicPaths 里的 "/sandlab"、publicPrefixes 里的 "/sandlab/"）。重新生成本文件时要带上这两条，
+ *   否则访问过本站的浏览器打不开 https://aixinshijie.github.io/sandlab （登录了看到本站的 404，没登录看到登录页）。
  */
 'use strict';
 
-const GATE = {"build":"20260923T143045-322ede","realms":{"teacher":"d908696c2770f0f1","student":"2546afa114b00a4f"},"commonKeyId":"9dd5e1ce1f545e04","publicPaths":["/.nojekyll","/favicon.svg","/logo-student.png","/logo.png","/robots.txt","/sw.js"],"publicPrefixes":["/_gate/"]};
+const GATE = {"build":"20260923T143045-322ede","realms":{"teacher":"d908696c2770f0f1","student":"2546afa114b00a4f"},"commonKeyId":"9dd5e1ce1f545e04","publicPaths":["/.nojekyll","/favicon.svg","/logo-student.png","/logo.png","/robots.txt","/sw.js","/sandlab"],"publicPrefixes":["/_gate/","/sandlab/"]};
 
 const DB_NAME = 'site-gate';
 const STORE = 'kv';
