@@ -187,11 +187,11 @@ async function handle(req, url) {
     out = await serveFile(k, lockedDocFor(url.pathname), '', 'html', 'no-cache');
     if (out.status === 404 && ext === '' && !url.pathname.endsWith('/')) {
       // 没有扩展名的普通文件（极少见）
-      const alt = await serveFile(k, url.pathname, url.search, '', cacheMode(req));
+      const alt = await serveFile(k, url.pathname, url.search, '', cacheMode(req, ''));
       if (alt.status !== 404) out = alt;
     }
   } else {
-    out = await serveFile(k, url.pathname, url.search, ext, cacheMode(req));
+    out = await serveFile(k, url.pathname, url.search, ext, cacheMode(req, ext));
   }
 
   if (out.nokey) {
@@ -202,7 +202,12 @@ async function handle(req, url) {
   return out.response;
 }
 
-function cacheMode(req) {
+// 代码类文件（js / css / json / rsc）每次都向服务器核对是否有新版本（没变化时服务器只回一个很小的 304）。
+// GitHub Pages 让浏览器把文件缓存 10 分钟，而主脚本、样式表这类文件换版本时文件名不变，
+// 不核对的话，新版本上线后的 10 分钟内页面还会跑旧脚本。图片、3D 模型等大文件仍走普通缓存。
+const REVALIDATE_EXT = new Set(['js', 'mjs', 'css', 'json', 'rsc']);
+function cacheMode(req, ext) {
+  if (REVALIDATE_EXT.has(ext)) return 'no-cache';
   const c = req.cache;
   return c === 'only-if-cached' ? 'default' : (c || 'default');
 }
@@ -279,7 +284,11 @@ async function serveFile(keys, pathname, search, ext, cache) {
     return { status: 500, response: textResponse(500, 'decrypt failed') };
   }
   const t = ext === '' ? 'application/octet-stream' : (TYPES[ext] || 'application/octet-stream');
+  // 代码和页面（js / css / json / rsc / html）交给页面时要明确写上 Cache-Control: no-cache，即「用之前要重新问一遍」。
+  // 不写的话，浏览器会拿 Last-Modified 自己估一个缓存时间（可能长达几十分钟），在同一个标签页里刷新（甚至强制刷新）
+  // 也不会来问这里，新版本上线后这个标签页会一直跑旧脚本（新样式配旧脚本，页面错乱）。
   const headers = new Headers({ 'Content-Type': t, 'Content-Length': String(plain.byteLength), 'X-Site-Gate': '1' });
+  if (REVALIDATE_EXT.has(ext) || ext === 'html' || ext === 'htm') headers.set('Cache-Control', 'no-cache');   // 图片、3D 模型等大文件不变
   const lm = res.headers.get('Last-Modified');
   if (lm) headers.set('Last-Modified', lm);
   return { status: 200, response: new Response(plain, { status: 200, statusText: 'OK', headers }) };
